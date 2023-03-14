@@ -30,8 +30,8 @@ public class JwtTokenProvider implements InitializingBean {
 
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "Bearer";
-//    private static final long ACCESS_TOKEN_EXPIRE_TIME = 30 * 60 * 1000L;              // 30분
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 24 * 60 * 60 * 1000L;              // 1일
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 30 * 60 * 1000L;              // 30분
+//    private static final long ACCESS_TOKEN_EXPIRE_TIME = 24 * 60 * 60 * 1000L;              // 1일
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000L;    // 7일
 
     private Key key;
@@ -71,6 +71,7 @@ public class JwtTokenProvider implements InitializingBean {
         return TokenDto.builder()
                 .grantType(BEARER_TYPE)
                 .accessToken(accessToken)
+                .accessTokenExpiresIn(validity.getTime())
                 .refreshToken(refreshToken)
                 .build();
     }
@@ -113,5 +114,12 @@ public class JwtTokenProvider implements InitializingBean {
             logger.info("JWT 토큰이 잘못되었습니다.");
         }
         return false;
+    }
+
+    public Long getExpiration(String accessToken) {
+        Date expiration = Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(accessToken).getBody().getExpiration();
+        Long now = new Date().getTime();
+        return expiration.getTime() - now;
     }
 }
