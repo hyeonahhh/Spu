@@ -12,8 +12,7 @@ import javax.persistence.*;
 public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="r_id")
-    private int rId;
+    private Long id;
 
     @Column(name="name")
     private String name;

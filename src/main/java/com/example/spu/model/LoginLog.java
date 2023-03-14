@@ -13,8 +13,7 @@ import java.util.Date;
 public class LoginLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="log_id")
-    private int logId;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name="u_id")

@@ -1,35 +1,47 @@
 package com.example.spu.model;
 
+import com.example.spu.Enum.Authority;
+import com.example.spu.Enum.Platform;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.persistence.*;
 
 @Entity
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name="user")
-public class User {
+public class User extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="u_id")
-    private int uId;
+    private Long id;
 
-    @Column(name="id")
-    private String id;
+    @Column(name="spu_id")
+    private String spuId;
 
     @Column(name="password")
     private String password;
 
-    @Column(name="platform")
-    private String platform;
+    @Enumerated(EnumType.STRING)
+    private Platform platform;
+
+    @Column(name="email")
+    private String email;
 
     @Column(name="birth")
     private String birth;
 
     @Column(name="name")
     private String name;
+
+    @Column(name="phone_number")
+    private String phoneNumber;
 
     @Column(name = "is_public")
     @ColumnDefault("false")
@@ -42,6 +54,14 @@ public class User {
     private int followNum;
 
     @OneToOne
-    @JoinColumn(name="l_id")
+    @JoinColumn(name="like_id")
     private Like like;
+
+    @Enumerated(EnumType.STRING)
+    private Authority authority;
+
+    public void encodePassword(PasswordEncoder passwordEncoder) {
+        this.password = passwordEncoder.encode(password);
+    }
+
 }

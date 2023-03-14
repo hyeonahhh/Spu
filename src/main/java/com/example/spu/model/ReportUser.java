@@ -12,8 +12,7 @@ import javax.persistence.*;
 public class ReportUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="ru_id")
-    private int ruId;
+    private Long id;
 
     @Column(name="reason")
     private String reason;

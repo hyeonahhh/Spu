@@ -12,8 +12,7 @@ import javax.persistence.*;
 public class ReportReview {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="rr_id")
-    private int rrId;
+    private Long id;
 
     @Column(name="reason")
     private String reason;
@@ -25,6 +24,6 @@ public class ReportReview {
     private String content;
 
     @OneToOne
-    @JoinColumn(name="re_id")
+    @JoinColumn(name="review_id")
     private Review review;
 }

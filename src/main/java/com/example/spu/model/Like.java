@@ -12,8 +12,7 @@ import javax.persistence.*;
 public class Like {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="l_id")
-    private int lId;
+    private Long id;
 
     @Column(name="favorite")
     private String favorite;

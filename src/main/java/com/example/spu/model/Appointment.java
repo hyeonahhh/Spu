@@ -14,8 +14,7 @@ import java.util.Date;
 public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="a_id")
-    private int aId;
+    private Long id;
 
     @Column(name="date")
     private Date date;

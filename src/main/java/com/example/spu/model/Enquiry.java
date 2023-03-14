@@ -13,8 +13,7 @@ import java.util.Date;
 public class Enquiry {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="e_id")
-    private int eId;
+    private Long id;
 
     @Column(name="status")
     private Boolean status;
@@ -29,6 +28,6 @@ public class Enquiry {
     private String answer;
 
     @OneToOne
-    @JoinColumn(name="u_id")
+    @JoinColumn(name="user_id")
     private User user;
 }

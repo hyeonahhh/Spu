@@ -12,14 +12,13 @@ import javax.persistence.*;
 public class WishList {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="w_id")
-    private int wId;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name="u_id")
     private User user;
 
     @OneToOne
-    @JoinColumn(name="r_id")
+    @JoinColumn(name="restaurant_id")
     private Restaurant restaurant;
 }
