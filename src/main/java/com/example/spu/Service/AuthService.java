@@ -1,10 +1,12 @@
 package com.example.spu.Service;
 
 import com.example.spu.Dto.*;
+import org.springframework.http.ResponseEntity;
 
 public interface AuthService {
 
-    UserDto signUp(UserSignUpRequestDto requestDto) throws Exception;
+    ResponseEntity<?> signUp(UserSignUpRequestDto requestDto) throws Exception;
     TokenDto login(UserLoginRequestDto userLoginRequestDto);
-    TokenDto reissue(TokenRequestDto tokenRequestDto);
+    ResponseEntity<?> reissue(TokenRequestDto tokenRequestDto);
+    ResponseEntity logout(TokenRequestDto tokenDto);
 }

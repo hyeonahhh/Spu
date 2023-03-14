@@ -2,20 +2,25 @@ package com.example.spu.Service;
 
 import com.example.spu.Dto.*;
 import com.example.spu.Jwt.JwtTokenProvider;
-import com.example.spu.Repository.RefreshTokenRepository;
 import com.example.spu.Repository.UserRepository;
 
-import com.example.spu.model.RefreshToken;
 import com.example.spu.model.User;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
+
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -28,32 +33,32 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     ModelMapper modelMapper;
 
     @Transactional
     @Override
-    public UserDto signUp(UserSignUpRequestDto requestDto) throws Exception {
+    public ResponseEntity<?> signUp(UserSignUpRequestDto requestDto) throws Exception {
         if (userRepository.findBySpuId(requestDto.getSpuId()).isPresent()) {
-            throw new Exception("이미 사용중인 아이디입니다.");
+            return ResponseEntity.badRequest().body("이미 사용중인 아이디입니다.");
         }
 
         if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
-            throw new Exception("이미 회원가입된 이메일입니다.");
+            return ResponseEntity.badRequest().body("이미 회원가입된 이메일입니다.");
         }
 
         User user = userRepository.save(requestDto.toEntity());
         user.encodePassword(passwordEncoder);
-        return modelMapper.map(user, UserDto.class);
+        return ResponseEntity.ok(modelMapper.map(user, UserDto.class));
     }
 
     @Override
     @Transactional
     public TokenDto login(UserLoginRequestDto userLoginRequestDto) {
         // id, pw를 기반으로 Authentication 객체 생성
-        // 이때 authentication은 인증 여부를 확인하는 authenticated 값이 false
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userLoginRequestDto.getSpuId(), userLoginRequestDto.getPassword());
 
@@ -63,43 +68,64 @@ public class AuthServiceImpl implements AuthService {
 
         TokenDto tokenDto = jwtTokenProvider.createToken(authentication);
 
-        RefreshToken refreshToken = RefreshToken.builder()
-                .key(authentication.getName())
-                .value(tokenDto.getRefreshToken())
-                .build();
-        refreshTokenRepository.save(refreshToken);
-
+        redisTemplate.opsForValue()
+                .set("RefreshToken:" + authentication.getName(), tokenDto.getRefreshToken()
+                        , tokenDto.getAccessTokenExpiresIn() - new Date().getTime(), TimeUnit.MILLISECONDS);
         return tokenDto;
     }
 
     @Transactional
-    public TokenDto reissue(TokenRequestDto tokenRequestDto) {
-        // 1. Refresh Token 검증
+    public ResponseEntity<?> reissue(TokenRequestDto tokenRequestDto) {
+        // Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDto.getRefreshToken())) {
-            throw new RuntimeException("Refresh Token 이 유효하지 않습니다.");
+            return ResponseEntity.badRequest().body("Refresh Token이 유효하지 않습니다.");
         }
 
-        // 2. Access Token 에서 Member ID 가져오기
+        // Access Token 에서 Member ID 가져오기
         Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequestDto.getAccessToken());
 
-        // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
-        RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("로그아웃 된 사용자입니다."));
-
-        // 4. Refresh Token 일치하는지 검사
-        if (!refreshToken.getValue().equals(tokenRequestDto.getRefreshToken())) {
-            throw new RuntimeException("토큰의 유저 정보가 일치하지 않습니다.");
+        String refreshToken = (String) redisTemplate.opsForValue().get("RefreshToken:" + authentication.getName());
+        // 로그아웃되어 존재하지 않는다면
+        if(ObjectUtils.isEmpty(refreshToken)) {
+            return ResponseEntity.badRequest().body("잘못된 요청입니다.");
+        }
+        if (!refreshToken.equals(tokenRequestDto.getRefreshToken())) {
+            return ResponseEntity.badRequest().body("토큰의 유저 정보가 일치하지 않습니다.");
         }
 
-        // 5. 새로운 토큰 생성
+        // 새로운 토큰 생성
         TokenDto tokenDto = jwtTokenProvider.createToken(authentication);
 
-        // 6. 저장소 정보 업데이트
-        RefreshToken newRefreshToken = refreshToken.updateValue(tokenDto.getRefreshToken());
-        refreshTokenRepository.save(newRefreshToken);
-
+        // 정보 업데이트
+        redisTemplate.opsForValue()
+                .set("RefreshToken:" + authentication.getName(), tokenDto.getRefreshToken(),
+                        tokenDto.getAccessTokenExpiresIn(), TimeUnit.MILLISECONDS);
         // 토큰 발급
-        return tokenDto;
+        return ResponseEntity.ok(tokenDto);
+    }
+
+    @Override
+    public ResponseEntity logout(TokenRequestDto requestDto) {
+        // 1. Access Token 검증
+        if (!jwtTokenProvider.validateToken(requestDto.getAccessToken())) {
+            return ResponseEntity.badRequest().body("잘못된 요청입니다.");
+        }
+
+        // 2. Access Token 에서 User spu id 을 가져옵니다.
+        Authentication authentication = jwtTokenProvider.getAuthentication(requestDto.getAccessToken());
+
+        // 3. Redis 에서 해당 User spu id 로 저장된 Refresh Token 이 있는지 여부를 확인 후 있을 경우 삭제합니다.
+        if (redisTemplate.opsForValue().get("RefreshToken:" + authentication.getName()) != null) {
+            // Refresh Token 삭제
+            redisTemplate.delete("RefreshToken:" + authentication.getName());
+        }
+
+        // 4. 해당 Access Token 유효시간 가지고 와서 BlackList 로 저장하기
+        Long expiration = jwtTokenProvider.getExpiration(requestDto.getAccessToken());
+        redisTemplate.opsForValue()
+                .set(requestDto.getAccessToken(), "logout", expiration, TimeUnit.MILLISECONDS);
+
+        return new ResponseEntity(HttpStatus.OK);
     }
 
 }

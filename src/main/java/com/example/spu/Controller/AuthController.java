@@ -17,8 +17,8 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signup(@Valid @RequestBody UserSignUpRequestDto requestDto) throws Exception {
-        return ResponseEntity.ok(authService.signUp(requestDto));
+    public ResponseEntity<?> signup(@Valid @RequestBody UserSignUpRequestDto requestDto) throws Exception {
+        return authService.signUp(requestDto);
     }
 
     @PostMapping("/login")
@@ -28,7 +28,14 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<TokenDto> reissue(@RequestBody TokenRequestDto tokenRequestDto) {
-        return ResponseEntity.ok(authService.reissue(tokenRequestDto));
+    public ResponseEntity<?> reissue(@RequestBody TokenRequestDto tokenRequestDto) {
+        return authService.reissue(tokenRequestDto);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity logout(@RequestHeader("Authorization") String accessToken,
+                       @RequestHeader("RefreshToken") String refreshToken) {
+        return authService.logout(TokenRequestDto.builder().accessToken(accessToken).refreshToken(refreshToken).build());
+    }
+
 }
