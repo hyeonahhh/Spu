@@ -27,7 +27,7 @@ public class Enquiry {
     @Column(name="answer")
     private String answer;
 
-    @OneToOne
-    @JoinColumn(name="user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="u_id")
     private User user;
 }

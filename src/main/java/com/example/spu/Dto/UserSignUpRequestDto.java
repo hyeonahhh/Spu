@@ -42,6 +42,8 @@ public class UserSignUpRequestDto {
 
     private Authority authority;
 
+    private Platform platform;
+
     @Builder
     public User toEntity() {
         return User.builder()
@@ -55,8 +57,12 @@ public class UserSignUpRequestDto {
                 .followerNum(0)
                 .followNum(0)
                 .isPublic(true)
-                .like(null)
-                .platform(Platform.NONE)
+                .preferences(null)
+                .socialId(null)
+                .imageUrl(null)
+                .reviewList(null)
+                .enquiryList(null)
+                .platform(platform)
                 .build();
     }
 }

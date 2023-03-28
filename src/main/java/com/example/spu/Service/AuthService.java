@@ -6,7 +6,8 @@ import org.springframework.http.ResponseEntity;
 public interface AuthService {
 
     ResponseEntity<?> signUp(UserSignUpRequestDto requestDto) throws Exception;
-    TokenDto login(UserLoginRequestDto userLoginRequestDto);
+    ResponseEntity<?> login(UserLoginRequestDto userLoginRequestDto);
     ResponseEntity<?> reissue(TokenRequestDto tokenRequestDto);
     ResponseEntity logout(TokenRequestDto tokenDto);
+    void deleteUser();
 }

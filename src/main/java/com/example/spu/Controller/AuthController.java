@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 @RestController
@@ -22,9 +23,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenDto> login(@RequestBody UserLoginRequestDto requestDto) throws Exception {
-        TokenDto tokenDto = authService.login(requestDto);
-        return ResponseEntity.ok(tokenDto);
+    public ResponseEntity<?> login(@RequestBody UserLoginRequestDto requestDto) throws Exception {
+        return authService.login(requestDto);
     }
 
     @PostMapping("/reissue")
@@ -35,7 +35,15 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity logout(@RequestHeader("Authorization") String accessToken,
                        @RequestHeader("RefreshToken") String refreshToken) {
-        return authService.logout(TokenRequestDto.builder().accessToken(accessToken).refreshToken(refreshToken).build());
+        return authService.logout(TokenRequestDto.builder().accessToken(accessToken.substring(7)).refreshToken(refreshToken).build());
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleterUser(HttpServletRequest request) {
+        String accessToken = request.getHeader("Authorization").substring(7);
+        String refreshToken = request.getHeader("RefreshToken");
+        authService.logout(TokenRequestDto.builder().accessToken(accessToken).refreshToken(refreshToken).build());
+        authService.deleteUser();
+        return ResponseEntity.ok("회원탈퇴가 완료되었습니다.");
+    }
 }

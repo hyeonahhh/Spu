@@ -3,6 +3,9 @@ package com.example.spu.model;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.persistence.*;
 
 @Entity
@@ -19,4 +22,7 @@ public class Restaurant {
 
     @Column(name = "address")
     private String address;
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.REMOVE)
+    private List<Review> reviews = new ArrayList<>();
 }

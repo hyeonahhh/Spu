@@ -1,5 +1,6 @@
 package com.example.spu.Repository;
 
+import com.example.spu.Enum.Platform;
 import com.example.spu.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,6 +12,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByPhoneNumber(String phoneNumber);
 
-    boolean existsBySpuId(String spuId);
+    Optional<User> findByPlatformAndSocialId(Platform platform, String socialId);
+
     boolean existsByEmail(String email);
+
+    void deleteBySpuId(String spuId);
 }

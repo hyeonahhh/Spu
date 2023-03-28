@@ -4,6 +4,7 @@ import com.example.spu.Dto.*;
 import com.example.spu.Jwt.JwtTokenProvider;
 import com.example.spu.Repository.UserRepository;
 
+import com.example.spu.Util.SecurityUtil;
 import com.example.spu.model.User;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -20,12 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
     private final PasswordEncoder passwordEncoder;
@@ -56,8 +57,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
-    public TokenDto login(UserLoginRequestDto userLoginRequestDto) {
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> login(UserLoginRequestDto userLoginRequestDto){
+        if (userLoginRequestDto == null) {
+            return ResponseEntity.badRequest().body("잘못된 로그인 정보입니다.");
+        }
         // id, pw를 기반으로 Authentication 객체 생성
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userLoginRequestDto.getSpuId(), userLoginRequestDto.getPassword());
@@ -71,10 +75,10 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue()
                 .set("RefreshToken:" + authentication.getName(), tokenDto.getRefreshToken()
                         , tokenDto.getAccessTokenExpiresIn() - new Date().getTime(), TimeUnit.MILLISECONDS);
-        return tokenDto;
+        return ResponseEntity.ok(tokenDto);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ResponseEntity<?> reissue(TokenRequestDto tokenRequestDto) {
         // Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDto.getRefreshToken())) {
@@ -105,6 +109,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ResponseEntity logout(TokenRequestDto requestDto) {
         // 1. Access Token 검증
         if (!jwtTokenProvider.validateToken(requestDto.getAccessToken())) {
@@ -127,5 +132,17 @@ public class AuthServiceImpl implements AuthService {
 
         return new ResponseEntity(HttpStatus.OK);
     }
+
+    @Override
+    @Transactional
+    public void deleteUser(){
+        Optional<User> user = userRepository.findBySpuId(SecurityUtil.getCurrentUserId());
+        if (user.isEmpty()) {
+            throw new IllegalStateException("사용자가 존재하지 않습니다.");
+        }
+
+        userRepository.deleteById(user.get().getId());
+    }
+
 
 }

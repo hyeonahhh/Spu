@@ -20,11 +20,11 @@ public class Review {
     @Column(name="text")
     private String text;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="restaurant_id")
     private Restaurant restaurant;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="u_id")
     private User user;
 

@@ -10,6 +10,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Data
@@ -31,6 +32,8 @@ public class User extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private Platform platform;
 
+    private String socialId; // 로그인한 소셜 타입의 식별자 값 (일반 로그인인 경우 null)
+
     @Column(name="email")
     private String email;
 
@@ -43,6 +46,8 @@ public class User extends BaseTimeEntity {
     @Column(name="phone_number")
     private String phoneNumber;
 
+    private String imageUrl;
+
     @Column(name = "is_public")
     @ColumnDefault("false")
     private boolean isPublic;
@@ -53,9 +58,15 @@ public class User extends BaseTimeEntity {
     @Column(name = "follow_num")
     private int followNum;
 
-    @OneToOne
-    @JoinColumn(name="like_id")
-    private Like like;
+    @OneToOne(cascade=CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name="preferences_id")
+    private Preferences preferences;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Enquiry> enquiryList;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Review> reviewList;
 
     @Enumerated(EnumType.STRING)
     private Authority authority;
@@ -64,4 +75,7 @@ public class User extends BaseTimeEntity {
         this.password = passwordEncoder.encode(password);
     }
 
+    public void authorizeUser() {
+        this.authority = Authority.USER;
+    }
 }
