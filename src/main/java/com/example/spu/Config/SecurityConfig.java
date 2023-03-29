@@ -2,6 +2,9 @@ package com.example.spu.Config;
 
 import com.example.spu.Jwt.*;
 
+import com.example.spu.OAuth2.Service.CustomOAuth2UserService;
+import com.example.spu.OAuth2.handler.OAuth2LoginFailureHandler;
+import com.example.spu.OAuth2.handler.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +30,11 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final RedisTemplate redisTemplate;
+
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -35,14 +43,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeRequests() // 인증절차에 대한 설정을 진행
-                .antMatchers("/auth/**").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
-                .anyRequest().authenticated()   // 나머지 요청은 인증이 되어야 접근 가능
-
-                .and()
                 .formLogin().disable() // 접근이 차단된 페이지 클릭시 이동할 url 설정인데 불가능하게
                 .csrf().disable()   // 세션을 사용하지 않고 JWT 토큰 활용, csrf 토큰 검사를 비활성화
-//                .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling()
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 .accessDeniedHandler(jwtAccessDeniedHandler)
@@ -51,10 +53,21 @@ public class SecurityConfig {
                 .headers().disable()
                 .httpBasic().disable()  // http basic auth 기반으로 로그인 인증창이 뜨지 않도록
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+//                .addFilterBefore(new JwtFilter(jwtTokenProvider, redisTemplate), UsernamePasswordAuthenticationFilter.class)
+//                .and()
+                .authorizeRequests() // 인증절차에 대한 설정을 진행
+                .antMatchers("/auth/**", "/oauth2", "/login").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
+                .anyRequest().authenticated()   // 나머지 요청은 인증이 되어야 접근 가능
 
                 .and()
-//                .apply(new JwtSecurityConfig(jwtTokenProvider));
-                .addFilterBefore(new JwtFilter(jwtTokenProvider, redisTemplate), UsernamePasswordAuthenticationFilter.class);
+                .oauth2Login()
+                .successHandler(oAuth2LoginSuccessHandler) // 동의하고 계속하기를 눌렀을 때 Handler 설정
+                .failureHandler(oAuth2LoginFailureHandler) // 소셜 로그인 실패 시 핸들러 설정
+                .userInfoEndpoint().userService(customOAuth2UserService); // customUserService 설정
+
+        http.addFilterBefore(new JwtFilter(jwtTokenProvider, redisTemplate), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
