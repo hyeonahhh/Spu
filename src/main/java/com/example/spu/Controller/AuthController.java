@@ -18,17 +18,17 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody UserSignUpRequestDto requestDto) throws Exception {
-        return authService.signUp(requestDto);
+    public void signup(@Valid @RequestBody UserSignUpRequestDto requestDto) throws Exception {
+        authService.signUp(requestDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserLoginRequestDto requestDto) throws Exception {
+    public ResponseEntity<TokenDto> login(@RequestBody UserLoginRequestDto requestDto) throws Exception {
         return authService.login(requestDto);
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<?> reissue(@RequestBody TokenRequestDto tokenRequestDto) {
+    public ResponseEntity<TokenDto> reissue(@RequestBody TokenRequestDto tokenRequestDto) {
         return authService.reissue(tokenRequestDto);
     }
 

@@ -46,7 +46,7 @@ public class JwtFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    // Request의 Header에서 token 값 가져옴. "X-AUTH-TOKEN" : "TOKEN 값"
+    // Request의 Header에서 token 값 가져옴
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
 

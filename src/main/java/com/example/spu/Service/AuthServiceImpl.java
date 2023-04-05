@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,26 +43,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public ResponseEntity<?> signUp(UserSignUpRequestDto requestDto) throws Exception {
+    public void signUp(UserSignUpRequestDto requestDto) throws Exception {
         if (userRepository.findBySpuId(requestDto.getSpuId()).isPresent()) {
-            return ResponseEntity.badRequest().body("이미 사용중인 아이디입니다.");
+            throw new IllegalArgumentException("이미 사용중인 아이디입니다.");
         }
 
         if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("이미 회원가입된 이메일입니다.");
+            throw new IllegalArgumentException("이미 사용중인 이메일입니다.");
         }
 
         User user = userRepository.save(requestDto.toEntity());
         user.encodePassword(passwordEncoder);
-        return ResponseEntity.ok(modelMapper.map(user, UserDto.class));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<?> login(UserLoginRequestDto userLoginRequestDto){
-        if (userLoginRequestDto == null) {
-            return ResponseEntity.badRequest().body("잘못된 로그인 정보입니다.");
-        }
+    public ResponseEntity<TokenDto> login(UserLoginRequestDto userLoginRequestDto){
         // id, pw를 기반으로 Authentication 객체 생성
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userLoginRequestDto.getSpuId(), userLoginRequestDto.getPassword());
@@ -75,14 +72,20 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue()
                 .set("RefreshToken:" + authentication.getName(), tokenDto.getRefreshToken()
                         , tokenDto.getAccessTokenExpiresIn() - new Date().getTime(), TimeUnit.MILLISECONDS);
-        return ResponseEntity.ok(tokenDto);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Bearer " + tokenDto.getAccessToken());
+        httpHeaders.add("RefreshToken", tokenDto.getRefreshToken());
+
+        return new ResponseEntity<>(tokenDto, httpHeaders, HttpStatus.OK);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<?> reissue(TokenRequestDto tokenRequestDto) {
+    public ResponseEntity<TokenDto> reissue(TokenRequestDto tokenRequestDto) {
         // Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDto.getRefreshToken())) {
-            return ResponseEntity.badRequest().body("Refresh Token이 유효하지 않습니다.");
+            throw new RuntimeException("Refresh Token이 유효하지 않습니다.");
         }
 
         // Access Token 에서 Member ID 가져오기
@@ -91,10 +94,10 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = (String) redisTemplate.opsForValue().get("RefreshToken:" + authentication.getName());
         // 로그아웃되어 존재하지 않는다면
         if(ObjectUtils.isEmpty(refreshToken)) {
-            return ResponseEntity.badRequest().body("잘못된 요청입니다.");
+            throw new RuntimeException("잘못된 요청입니다.");
         }
         if (!refreshToken.equals(tokenRequestDto.getRefreshToken())) {
-            return ResponseEntity.badRequest().body("토큰의 유저 정보가 일치하지 않습니다.");
+            throw new RuntimeException("토큰의 유저 정보가 일치하지 않습니다.");
         }
 
         // 새로운 토큰 생성
@@ -104,8 +107,12 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue()
                 .set("RefreshToken:" + authentication.getName(), tokenDto.getRefreshToken(),
                         tokenDto.getAccessTokenExpiresIn(), TimeUnit.MILLISECONDS);
-        // 토큰 발급
-        return ResponseEntity.ok(tokenDto);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("Authorization", "Bearer " + tokenDto.getAccessToken());
+        httpHeaders.set("RefreshToken", tokenDto.getRefreshToken());
+
+        return new ResponseEntity<>(tokenDto, httpHeaders, HttpStatus.OK);
     }
 
     @Override
@@ -129,6 +136,10 @@ public class AuthServiceImpl implements AuthService {
         Long expiration = jwtTokenProvider.getExpiration(requestDto.getAccessToken());
         redisTemplate.opsForValue()
                 .set(requestDto.getAccessToken(), "logout", expiration, TimeUnit.MILLISECONDS);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.remove("Authorization");
+        httpHeaders.remove("RefreshToken");
 
         return new ResponseEntity(HttpStatus.OK);
     }

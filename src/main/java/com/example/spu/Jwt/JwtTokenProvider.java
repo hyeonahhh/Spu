@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,24 +27,25 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider implements InitializingBean {
 
     private final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
-    private String secret = "spuprojectsecretkeyspuprojectsecretkey";
+
+    @Value("${jwt.secretKey}")
+    private String secretKey;
 
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "Bearer";
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 30 * 60 * 1000L;              // 30분
-//    private static final long ACCESS_TOKEN_EXPIRE_TIME = 24 * 60 * 60 * 1000L;              // 1일
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 24 * 60 * 60 * 1000L;              // 1일
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000L;    // 7일
 
     private Key key;
 
     @PostConstruct
     protected void init() {
-        secret = Base64.getEncoder().encodeToString(secret.getBytes());
+        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
 
     @Override
     public void afterPropertiesSet() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
