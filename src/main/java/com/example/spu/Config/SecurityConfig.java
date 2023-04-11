@@ -12,7 +12,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -50,30 +49,26 @@ public class SecurityConfig {
                 .accessDeniedHandler(jwtAccessDeniedHandler)
 
                 .and()
-                .headers().disable()
                 .httpBasic().disable()  // http basic auth 기반으로 로그인 인증창이 뜨지 않도록
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-//                .addFilterBefore(new JwtFilter(jwtTokenProvider, redisTemplate), UsernamePasswordAuthenticationFilter.class)
-//                .and()
                 .authorizeRequests() // 인증절차에 대한 설정을 진행
-                .antMatchers("/auth/**", "/oauth2", "/login").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
+                .antMatchers("/auth/**", "/oauth2", "/login", "/").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
                 .anyRequest().authenticated()   // 나머지 요청은 인증이 되어야 접근 가능
 
                 .and()
                 .oauth2Login()
+//                .loginPage("/")
+//                .defaultSuccessUrl("/")			// 로그인 성공하면 "/" 으로 이동
+//                .failureUrl("/loginForm")		// 로그인 실패 시 /loginForm으로 이동
+                .userInfoEndpoint().userService(customOAuth2UserService)// customUserService 설정
+                .and()
                 .successHandler(oAuth2LoginSuccessHandler) // 동의하고 계속하기를 눌렀을 때 Handler 설정
-                .failureHandler(oAuth2LoginFailureHandler) // 소셜 로그인 실패 시 핸들러 설정
-                .userInfoEndpoint().userService(customOAuth2UserService); // customUserService 설정
+                .failureHandler(oAuth2LoginFailureHandler); // 소셜 로그인 실패 시 핸들러 설정
 
         http.addFilterBefore(new JwtFilter(jwtTokenProvider, redisTemplate), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().antMatchers("/assets/**", "/file/**","/image/**", "/favicon.ico");
     }
 
 }
