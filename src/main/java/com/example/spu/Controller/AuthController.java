@@ -3,6 +3,7 @@ package com.example.spu.Controller;
 
 import com.example.spu.Dto.*;
 import com.example.spu.Service.AuthService;
+import com.example.spu.Service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import javax.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailService emailService;
 
     @PostMapping("/signup")
     public void signup(@Valid @RequestBody UserSignUpRequestDto requestDto) throws Exception {
@@ -45,5 +47,10 @@ public class AuthController {
         authService.logout(TokenRequestDto.builder().accessToken(accessToken).refreshToken(refreshToken).build());
         authService.deleteUser();
         return ResponseEntity.ok("회원탈퇴가 완료되었습니다.");
+    }
+
+    @PostMapping("/email/confirm")
+    public ResponseEntity<String> emailConfirm(@RequestParam String email) throws Exception {
+        return ResponseEntity.ok(emailService.sendSimpleMessage(email));
     }
 }
