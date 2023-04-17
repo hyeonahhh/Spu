@@ -3,7 +3,6 @@ package com.example.spu.Dto;
 import com.example.spu.Enum.Authority;
 import com.example.spu.Enum.Platform;
 import com.example.spu.model.Enquiry;
-import com.example.spu.model.Preferences;
 import com.example.spu.model.Review;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,7 +50,7 @@ public class UserDto {
     private int followNum;
     private int followerNum;
 
-    private Preferences preferences;
+    private PreferencesDto preferences;
     private Authority authority;
 
     private List<Enquiry> enquiryList = new ArrayList<>();

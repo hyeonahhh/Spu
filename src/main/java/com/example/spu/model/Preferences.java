@@ -18,15 +18,19 @@ public class Preferences {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 극호
     @Column(name="favorite")
     private String favorite;
 
+    // 호
+    @Column(name="less_favorite")
+    private String lessFavorite;
+
+    // 보통
     @Column(name="normal")
     private String normal;
 
-    @Column(name="less_disLike")
-    private String lessDislike;
-
+    // 불호
     @Column(name="dislike")
     private String dislike;
 }
