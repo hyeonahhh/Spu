@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests() // 인증절차에 대한 설정을 진행
-                .antMatchers("/auth/**", "/oauth2", "/login", "/").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
+                .antMatchers("/auth/**", "/oauth2", "/login", "/swagger-ui/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll() // 설정 url은 인증되지 않아도 누구나 접근
                 .anyRequest().authenticated()   // 나머지 요청은 인증이 되어야 접근 가능
 
                 .and()
